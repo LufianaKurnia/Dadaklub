@@ -1,305 +1,287 @@
-// ─── LENIS-STYLE SMOOTH SCROLL ───
-let scrollY = 0,
-  targetY = 0,
-  currentY = 0;
-const ease = 0.072;
-
+/* LERP */
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
 
+/* SMOOTH SCROLL */
+const sc = document.getElementById("sc");
+let ty = 0,
+  cy = 0;
+const ease = 0.088;
 window.addEventListener(
   "scroll",
   () => {
-    targetY = window.scrollY;
+    ty = window.scrollY;
+    prog();
+    navScroll();
+    parallax();
   },
   { passive: true },
 );
+(function loop() {
+  cy = lerp(cy, ty, ease);
+  if (Math.abs(ty - cy) < 0.05) cy = ty;
+  sc.style.transform = `translate3d(0,${-cy}px,0)`;
+  requestAnimationFrame(loop);
+})();
+document.body.style.minHeight = sc.scrollHeight + "px";
+window.addEventListener("resize", () => {
+  document.body.style.minHeight = sc.scrollHeight + "px";
+});
 
-function smoothScroll() {
-  currentY = lerp(currentY, targetY, ease);
-  scrollY = currentY;
-  requestAnimationFrame(smoothScroll);
+/* PROGRESS */
+const pb = document.getElementById("prog");
+function prog() {
+  const mx = document.body.scrollHeight - window.innerHeight;
+  pb.style.width = (window.scrollY / mx) * 100 + "%";
 }
-smoothScroll();
 
-// ─── CUSTOM CURSOR ───
-const dot = document.getElementById("cursor-dot");
-const ring = document.getElementById("cursor-ring");
-let mx = 0,
-  my = 0,
-  rx = 0,
-  ry = 0;
+/* NAV */
+const mn = document.getElementById("mn");
+function navScroll() {
+  mn.classList.toggle("sc", window.scrollY > 80);
+}
 
+/* CURSOR */
+const cd = document.getElementById("cd"),
+  cr = document.getElementById("cr");
+let mx = -100,
+  my = -100,
+  rx = -100,
+  ry = -100;
 document.addEventListener("mousemove", (e) => {
   mx = e.clientX;
   my = e.clientY;
-  dot.style.left = mx + "px";
-  dot.style.top = my + "px";
+  cd.style.left = mx + "px";
+  cd.style.top = my + "px";
+});
+(function rl() {
+  rx = lerp(rx, mx, 0.1);
+  ry = lerp(ry, my, 0.1);
+  cr.style.left = rx + "px";
+  cr.style.top = ry + "px";
+  requestAnimationFrame(rl);
+})();
+document.querySelectorAll("a,button,.mc,.scard").forEach((el) => {
+  el.addEventListener("mouseenter", () => {
+    cd.classList.add("ex");
+    cr.classList.add("ex");
+  });
+  el.addEventListener("mouseleave", () => {
+    cd.classList.remove("ex");
+    cr.classList.remove("ex");
+  });
 });
 
-(function animRing() {
-  rx = lerp(rx, mx, 0.12);
-  ry = lerp(ry, my, 0.12);
-  ring.style.left = rx + "px";
-  ring.style.top = ry + "px";
-  requestAnimationFrame(animRing);
-})();
+/* PARALLAX */
+const pw0 = document.getElementById("pw0"),
+  pw1 = document.getElementById("pw1"),
+  pw2 = document.getElementById("pw2");
+function parallax() {
+  const sy = window.scrollY;
+  if (pw0) pw0.style.transform = `translateX(-50%) translateY(${sy * -0.06}px)`;
+  if (pw1) pw1.style.transform = `translateY(${sy * -0.14}px)`;
+  if (pw2) pw2.style.transform = `translateY(${sy * 0.09}px)`;
+}
 
-document
-  .querySelectorAll("a, button, .member-card, .stat-item")
-  .forEach((el) => {
-    el.addEventListener("mouseenter", () => {
-      dot.classList.add("hovering");
-      ring.classList.add("hovering");
-    });
-    el.addEventListener("mouseleave", () => {
-      dot.classList.remove("hovering");
-      ring.classList.remove("hovering");
-    });
-  });
-
-// ─── PROGRESS BAR ───
-const progressBar = document.getElementById("progress-bar");
-window.addEventListener(
-  "scroll",
-  () => {
-    const s = window.scrollY;
-    const h = document.body.scrollHeight - window.innerHeight;
-    progressBar.style.width = (s / h) * 100 + "%";
-  },
-  { passive: true },
-);
-
-// ─── NAV SCROLL STATE ───
-const nav = document.getElementById("main-nav");
-window.addEventListener(
-  "scroll",
-  () => {
-    nav.classList.toggle("scrolled", window.scrollY > 60);
-  },
-  { passive: true },
-);
-
-// ─── SCROLL REVEAL ───
-const revealEls = document.querySelectorAll(
-  ".reveal, .reveal-left, .reveal-right, .stat-item, .member-card, .section-title",
-);
-const revealObs = new IntersectionObserver(
+/* INTERSECTION OBSERVER */
+const obs = new IntersectionObserver(
   (entries) => {
     entries.forEach((e) => {
-      if (e.isIntersecting) e.target.classList.add("in-view");
+      if (e.isIntersecting) e.target.classList.add("iv");
     });
   },
-  { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+  { threshold: 0.08, rootMargin: "0px 0px -50px 0px" },
 );
-revealEls.forEach((el) => revealObs.observe(el));
+document
+  .querySelectorAll(".rv,.rvl,.rvr,.scard,.stitle,.mline")
+  .forEach((el) => obs.observe(el));
 
-// ─── PARALLAX WORDS ───
-const pw1 = document.getElementById("pw1");
-const pw2 = document.getElementById("pw2");
-window.addEventListener(
-  "scroll",
-  () => {
-    const sy = window.scrollY;
-    if (pw1)
-      pw1.style.transform = `translateY(${sy * -0.12}px) translateX(${sy * 0.05}px)`;
-    if (pw2)
-      pw2.style.transform = `translateY(${sy * 0.08}px) translateX(${sy * -0.04}px)`;
-  },
-  { passive: true },
-);
-
-// ─── FLUID METABALL CANVAS ───
-(function () {
-  const canvas = document.getElementById("fluid-canvas");
-  const ctx = canvas.getContext("2d");
-  let W, H;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-  window.addEventListener("resize", resize);
-  resize();
-
-  // Metaball blobs
-  const blobs = [];
-  const NUM_BLOBS = 6;
-  for (let i = 0; i < NUM_BLOBS; i++) {
-    blobs.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
-      r: 180 + Math.random() * 160,
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.003 + Math.random() * 0.004,
-    });
-  }
-
-  let mouseX = W / 2,
-    mouseY = H / 2;
-  document.addEventListener("mousemove", (e) => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-  });
-
-  function drawBlob(b, t) {
-    const wobble = Math.sin(t * b.speed + b.phase) * 30;
-    const r = b.r + wobble;
-    const grd = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
-    grd.addColorStop(0, "rgba(255,255,255,0.055)");
-    grd.addColorStop(0.4, "rgba(255,255,255,0.02)");
-    grd.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.beginPath();
-    ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = grd;
-    ctx.fill();
-  }
-
-  let t = 0;
-  function animFluid() {
-    ctx.clearRect(0, 0, W, H);
-    t++;
-    blobs.forEach((b, i) => {
-      // Drift
-      b.x += b.vx + Math.sin(t * 0.002 + i) * 0.3;
-      b.y += b.vy + Math.cos(t * 0.003 + i) * 0.3;
-      // Bounce
-      if (b.x < -b.r) b.x = W + b.r;
-      if (b.x > W + b.r) b.x = -b.r;
-      if (b.y < -b.r) b.y = H + b.r;
-      if (b.y > H + b.r) b.y = -b.r;
-      // Mouse attraction (very subtle)
-      const dx = mouseX - b.x,
-        dy = mouseY - b.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 400) {
-        b.x += dx * 0.0003;
-        b.y += dy * 0.0003;
+/* MEMBER CARDS */
+const members = [
+  { id: "A1", name: "Anggota Satu", role: "Kepala Dadakan" },
+  { id: "A2", name: "Anggota Dua", role: "Pilar Spontan" },
+  { id: "A3", name: "Anggota Tiga", role: "Chaos Curator" },
+  { id: "A4", name: "Anggota Empat", role: "Vibe Architect" },
+  { id: "A5", name: "Anggota Lima", role: "Plan Destroyer" },
+  { id: "A6", name: "Anggota Enam", role: "Wild Card" },
+  { id: "A7", name: "Anggota Tujuh", role: "Chief of Chaos" },
+  { id: "A8", name: "Anggota Delapan", role: "The Connector" },
+];
+const mg = document.getElementById("mg");
+const mobs = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        const i = parseInt(e.target.dataset.i);
+        setTimeout(() => e.target.classList.add("iv"), i * 80);
       }
-      drawBlob(b, t);
     });
-    requestAnimationFrame(animFluid);
-  }
-  animFluid();
-})();
+  },
+  { threshold: 0.05 },
+);
+members.forEach((m, i) => {
+  const c = document.createElement("div");
+  c.className = "mc";
+  c.dataset.i = i;
+  c.innerHTML = `<div class="mbg"></div><div class="minit">${m.id}</div><span class="midx">${String(i + 1).padStart(2, "0")}</span><div class="minfo"><span class="mname">${m.name}</span><span class="mrole">${m.role}</span></div>`;
+  mg.appendChild(c);
+  mobs.observe(c);
+  c.addEventListener("mouseenter", () => {
+    cd.classList.add("ex");
+    cr.classList.add("ex");
+  });
+  c.addEventListener("mouseleave", () => {
+    cd.classList.remove("ex");
+    cr.classList.remove("ex");
+  });
+});
 
-// ─── PARTICLE / DROPLET CANVAS (scroll-reactive) ───
+/* ═══ MOTION GRAPH CANVAS ═══ */
 (function () {
-  const canvas = document.getElementById("particle-canvas");
-  const ctx = canvas.getContext("2d");
-  let W, H;
-
-  function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+  const cv = document.getElementById("gc"),
+    ctx = cv.getContext("2d");
+  let W,
+    H,
+    t = 0,
+    sv = 0,
+    lsy = 0,
+    mx2 = 0,
+    my2 = 0;
+  function rsz() {
+    W = cv.width = window.innerWidth;
+    H = cv.height = window.innerHeight;
   }
-  window.addEventListener("resize", resize);
-  resize();
-
-  // Droplets
-  const drops = [];
-  const NUM = 80;
-  for (let i = 0; i < NUM; i++) {
-    drops.push(spawnDrop());
-  }
-  function spawnDrop() {
-    return {
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vy: 0.3 + Math.random() * 0.6,
-      vx: (Math.random() - 0.5) * 0.2,
-      r: 1 + Math.random() * 2.5,
-      alpha: 0.1 + Math.random() * 0.35,
-      trail: [],
-      maxTrail: 6 + Math.floor(Math.random() * 8),
-    };
-  }
-
-  let scrollVel = 0,
-    lastSY = 0;
+  window.addEventListener("resize", rsz);
+  rsz();
   window.addEventListener(
     "scroll",
     () => {
       const sy = window.scrollY;
-      scrollVel = Math.min(Math.abs(sy - lastSY), 30);
-      lastSY = sy;
+      sv += Math.abs(sy - lsy) * 0.7;
+      lsy = sy;
     },
     { passive: true },
   );
-
-  function animDrops() {
-    ctx.clearRect(0, 0, W, H);
-    const speedMult = 1 + scrollVel * 0.18;
-    scrollVel *= 0.9;
-
-    drops.forEach((d) => {
-      d.trail.push({ x: d.x, y: d.y });
-      if (d.trail.length > d.maxTrail) d.trail.shift();
-
-      d.y += d.vy * speedMult;
-      d.x += d.vx;
-
-      // Draw trail
-      if (d.trail.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(d.trail[0].x, d.trail[0].y);
-        for (let j = 1; j < d.trail.length; j++) {
-          ctx.lineTo(d.trail[j].x, d.trail[j].y);
-        }
-        ctx.strokeStyle = `rgba(255,255,255,${d.alpha * 0.3 * (d.trail.length / d.maxTrail)})`;
-        ctx.lineWidth = d.r * 0.5;
-        ctx.stroke();
-      }
-
-      // Draw droplet
-      const grd = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 2);
-      grd.addColorStop(0, `rgba(255,255,255,${d.alpha})`);
-      grd.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = grd;
-      ctx.fill();
-
-      // Reset when out
-      if (d.y > H + 10) {
-        d.y = -10;
-        d.x = Math.random() * W;
-        d.trail = [];
-        d.vy = 0.3 + Math.random() * 0.6;
-        d.alpha = 0.1 + Math.random() * 0.35;
-        d.r = 1 + Math.random() * 2.5;
-      }
-    });
-    requestAnimationFrame(animDrops);
-  }
-  animDrops();
-
-  // Splash on click
-  document.addEventListener("click", (e) => {
-    for (let i = 0; i < 8; i++) {
-      const splash = spawnDrop();
-      splash.x = e.clientX + (Math.random() - 0.5) * 40;
-      splash.y = e.clientY + (Math.random() - 0.5) * 20;
-      splash.vy = -2 - Math.random() * 3;
-      splash.vx = (Math.random() - 0.5) * 4;
-      splash.alpha = 0.5 + Math.random() * 0.4;
-      splash.r = 1.5 + Math.random() * 3;
-      drops.push(splash);
-      if (drops.length > NUM + 30) drops.shift();
-    }
+  document.addEventListener("mousemove", (e) => {
+    mx2 = e.clientX;
+    my2 = e.clientY;
   });
+
+  const lines = [
+    { y: 0.18, amp: 26, freq: 0.0075, spd: 0.55, ph: 0, tk: 0.55, al: 0.18 },
+    { y: 0.32, amp: 16, freq: 0.011, spd: 0.38, ph: 1.2, tk: 0.38, al: 0.09 },
+    { y: 0.5, amp: 38, freq: 0.006, spd: 0.75, ph: 2.4, tk: 0.75, al: 0.2 },
+    { y: 0.66, amp: 20, freq: 0.009, spd: 0.48, ph: 3.6, tk: 0.48, al: 0.11 },
+    { y: 0.82, amp: 30, freq: 0.007, spd: 0.65, ph: 4.8, tk: 0.65, al: 0.15 },
+    { y: 0.1, amp: 12, freq: 0.014, spd: 0.28, ph: 0.6, tk: 0.28, al: 0.06 },
+    { y: 0.92, amp: 18, freq: 0.0085, spd: 0.52, ph: 5.4, tk: 0.42, al: 0.08 },
+  ];
+
+  function drawL(l, t, sv) {
+    const by = H * l.y,
+      ta = l.amp + sv * 1.6;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 3) {
+      const w =
+        Math.sin(x * l.freq + t * l.spd + l.ph) * ta * 0.7 +
+        Math.sin(x * l.freq * 2.2 + t * l.spd * 1.3 + l.ph * 1.3) * ta * 0.2 +
+        Math.sin(x * l.freq * 0.5 + t * l.spd * 0.6) * ta * 0.1;
+      const dx = x - mx2,
+        dy = by + w - my2,
+        dist = Math.sqrt(dx * dx + dy * dy);
+      const push = dist < 180 ? ((180 - dist) / 180) * 22 : 0;
+      const y = by + w + (dy < 0 ? push : -push) * 0.28;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    const g = ctx.createLinearGradient(0, 0, W, 0);
+    g.addColorStop(0, "rgba(239,239,239,0)");
+    g.addColorStop(0.08, `rgba(239,239,239,${l.al})`);
+    g.addColorStop(0.5, `rgba(239,239,239,${l.al * 1.7})`);
+    g.addColorStop(0.92, `rgba(239,239,239,${l.al})`);
+    g.addColorStop(1, "rgba(239,239,239,0)");
+    ctx.strokeStyle = g;
+    ctx.lineWidth = l.tk * (1 + sv * 0.025);
+    ctx.stroke();
+  }
+
+  (function anim() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.011;
+    sv *= 0.93;
+    lines.forEach((l) => drawL(l, t, sv));
+    requestAnimationFrame(anim);
+  })();
 })();
 
-// ─── SMOOTH NAV SCROLL ───
+/* ═══ INK BLOB CANVAS ═══ */
+(function () {
+  const cv = document.getElementById("ic"),
+    ctx = cv.getContext("2d");
+  let W,
+    H,
+    t = 0,
+    mx3 = 0,
+    my3 = 0;
+  function rsz() {
+    W = cv.width = window.innerWidth;
+    H = cv.height = window.innerHeight;
+  }
+  window.addEventListener("resize", rsz);
+  rsz();
+  document.addEventListener("mousemove", (e) => {
+    mx3 = e.clientX;
+    my3 = e.clientY;
+  });
+  const blobs = Array.from({ length: 5 }, (_, i) => ({
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    vx: (Math.random() - 0.5) * 0.35,
+    vy: (Math.random() - 0.5) * 0.35,
+    r: 190 + Math.random() * 170,
+    ph: Math.random() * Math.PI * 2,
+    sp: 0.002 + Math.random() * 0.003,
+  }));
+  (function anim() {
+    ctx.clearRect(0, 0, W, H);
+    t++;
+    blobs.forEach((b, i) => {
+      b.x += b.vx + Math.sin(t * 0.0014 + i * 1.3) * 0.45;
+      b.y += b.vy + Math.cos(t * 0.0019 + i * 0.9) * 0.38;
+      if (b.x < -b.r) b.x = W + b.r;
+      if (b.x > W + b.r) b.x = -b.r;
+      if (b.y < -b.r) b.y = H + b.r;
+      if (b.y > H + b.r) b.y = -b.r;
+      const dx = mx3 - b.x,
+        dy = my3 - b.y,
+        d = Math.sqrt(dx * dx + dy * dy);
+      if (d < 500) {
+        b.x += dx * 0.00022;
+        b.y += dy * 0.00022;
+      }
+      const wb = Math.sin(t * b.sp + b.ph) * 38,
+        r = b.r + wb;
+      const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+      g.addColorStop(0, "rgba(239,239,239,0.04)");
+      g.addColorStop(0.4, "rgba(239,239,239,0.013)");
+      g.addColorStop(1, "rgba(239,239,239,0)");
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    });
+    requestAnimationFrame(anim);
+  })();
+})();
+
+/* SMOOTH ANCHOR NAV */
 document.querySelectorAll('a[href^="#"]').forEach((a) => {
   a.addEventListener("click", (e) => {
     e.preventDefault();
-    const target = document.querySelector(a.getAttribute("href"));
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth" });
+    const t = document.querySelector(a.getAttribute("href"));
+    if (t) {
+      const top = t.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top, behavior: "smooth" });
     }
   });
 });
